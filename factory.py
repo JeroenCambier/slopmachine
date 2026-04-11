@@ -3,9 +3,41 @@ import datetime
 import os
 import time
 
-# LM Studio API URL
+#### Settings #######################################
 BASE_API_URL = "http://localhost:1234/v1"
 API_URL = "http://localhost:1234/v1/chat/completions"
+outputsDirectory = "outputs"
+#####################################################
+
+def get_directory_name(originalPrompt, temperature = 3):
+    prompt = f"""    Create a directory name for the following website idea: \n\t{originalPrompt}.
+    The directory name should be short, descriptive, and use only lowercase letters, numbers, and hyphens.
+    Return only the directory name without any additional text, formatting, explanations or thinking. Just the directory name."""
+
+    payload = {
+        "model": "lmstudio",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": temperature
+    }
+
+    response = requests.post(API_URL, json=payload)
+    content = response.json()["choices"][0]["message"]["content"]
+
+    uniqueProjectName = get_unique_folder_name("./" +outputsDirectory, content)
+
+    return uniqueProjectName
+
+def get_unique_folder_name(base_path, folder_name):
+    counter = 0
+    new_name = folder_name
+
+    while os.path.exists(os.path.join(base_path, new_name)):
+        counter += 1
+        new_name = f"{folder_name}-{counter}"
+
+    return os.path.join(base_path, new_name)
 
 def generate_file(prompt, filename, temperature):
     payload = {
@@ -69,17 +101,6 @@ def finish_documentation(filename, totalTime):
         f.write(f"\n\nTotal time taken to generate all versions: {totalTime} seconds\n")
         f.write("Conclusion / Comments:\n")
 
-### Directory creation stuff ################
-if(os.path.exists("outputs") == False):
-    os.mkdir("outputs")
-output_directory = "outputs/" + datetime.datetime.now().strftime("factory-%Y-%m-%d_%H-%M")
-os.mkdir(output_directory)
-print(f"Directory '{output_directory}' has been created.")
-
-# Create directory for broken files
-os.mkdir(output_directory + "/not-working")
-print(f"Directory '{output_directory}/not-working' has been created.")
-#############################################
 
 
 ### start of the actual program ###############
@@ -88,20 +109,34 @@ originalPrompt = input()
 
 print("\nEnter the number of versions to generate:")
 numberOfVersions = int(input())
-print("\nGenerating enhanced prompt ...")
+print("\nGenerating ...")
+
+### Directory creation stuff ################
+if(os.path.exists(outputsDirectory) == False):
+    os.mkdir(outputsDirectory)
+
+currenProjectDirectory = get_directory_name(originalPrompt)
+os.mkdir(currenProjectDirectory)
+print(f"Directory '{currenProjectDirectory}' has been created.")
+
+# Create directory for broken files
+os.mkdir(currenProjectDirectory + "/not-working")
+print(f"Directory '{currenProjectDirectory}/not-working' has been created.")
+#############################################
+
 
 prompToGeneratePrompt = f"""
     write a prompt that you could give to an llm to create the following 
     as flawlessly as possible in an html file: \n\t{originalPrompt}. output only the prompt and nothing else"""
 
 start_time = time.perf_counter()
-generate_file(prompToGeneratePrompt, f"{output_directory}/generated_prompt.txt", 0.1)
+generate_file(prompToGeneratePrompt, f"{currenProjectDirectory}/generated_prompt.txt", 0.1)
 end_time = time.perf_counter()
 AIpromptGenerationTime = round(end_time - start_time, 2)
 print(f"Enhanced prompt generated in {AIpromptGenerationTime} seconds.\n")
 
 generatedPrompt = ""
-with open(f"{output_directory}/generated_prompt.txt", "r", encoding="utf-8") as f:
+with open(f"{currenProjectDirectory}/generated_prompt.txt", "r", encoding="utf-8") as f:
     generatedPrompt = f.read()
 
 onlyHtmlPrompAddition = """
@@ -111,7 +146,7 @@ onlyHtmlPrompAddition = """
     Output ONLY valid HTML code. The language in the game and UI must be English. 
     The html file should represent the following: """
 
-generate_documentation(f"{output_directory}/documentation.txt", AIpromptGenerationTime, numberOfVersions)
+generate_documentation(f"{currenProjectDirectory}/documentation.txt", AIpromptGenerationTime, numberOfVersions)
 
 totalTime = AIpromptGenerationTime
 
@@ -122,15 +157,15 @@ for x in range(numberOfVersions):
     start_time = time.perf_counter()
     generate_file(
         onlyHtmlPrompAddition + generatedPrompt,
-        f"{output_directory}/temperature-is-{temperature}.html",
+        f"{currenProjectDirectory}/temperature-is-{temperature}.html",
         temperature
     )
     end_time = time.perf_counter()
     timeTaken = round(end_time - start_time, 2)
     totalTime += timeTaken
-    add_version_info_to_documentation(f"{output_directory}/documentation.txt", temperature, timeTaken)
-    print(f"Version {x+1}/{numberOfVersions} with temperature {temperature} has been generated.\n")
+    add_version_info_to_documentation(f"{currenProjectDirectory}/documentation.txt", temperature, timeTaken)
+    print(f"Version {x+1}/{numberOfVersions} with temperature {temperature} has been generated in {timeTaken} seconds.\n")
 
-finish_documentation(f"{output_directory}/documentation.txt", totalTime)
+finish_documentation(f"{currenProjectDirectory}/documentation.txt", totalTime)
 print(f"All versions have been generated. Total time taken: {totalTime} seconds.")
 
