@@ -10,7 +10,7 @@ outputsDirectory = "outputs"
 #####################################################
 
 def get_directory_name(originalPrompt, temperature = 3):
-    prompt = f"""    Create a directory name for the following website idea: \n\t{originalPrompt}.
+    prompt = f"""Create a directory name for the following website idea: \n\t{originalPrompt}.
     The directory name should be short, descriptive, and use only lowercase letters, numbers, and hyphens.
     Return only the directory name without any additional text, formatting, explanations or thinking. Just the directory name."""
 
@@ -52,7 +52,6 @@ def generate_file(prompt, filename, temperature):
     content = response.json()["choices"][0]["message"]["content"]
 
     with open(filename, "w", encoding="utf-8") as f:
-        
         f.write(content)
 
     print(f"File '{filename}' has been created.")
@@ -115,6 +114,7 @@ print("\nGenerating ...")
 if(os.path.exists(outputsDirectory) == False):
     os.mkdir(outputsDirectory)
 
+# Genereate a directory name
 currenProjectDirectory = get_directory_name(originalPrompt)
 os.mkdir(currenProjectDirectory)
 print(f"Directory '{currenProjectDirectory}' has been created.")
@@ -124,21 +124,22 @@ os.mkdir(currenProjectDirectory + "/not-working")
 print(f"Directory '{currenProjectDirectory}/not-working' has been created.")
 #############################################
 
-
+# Generate a more detailed prompt
 prompToGeneratePrompt = f"""
     write a prompt that you could give to an llm to create the following 
     as flawlessly as possible in an html file: \n\t{originalPrompt}. output only the prompt and nothing else"""
-
 start_time = time.perf_counter()
 generate_file(prompToGeneratePrompt, f"{currenProjectDirectory}/generated_prompt.txt", 0.1)
 end_time = time.perf_counter()
 AIpromptGenerationTime = round(end_time - start_time, 2)
 print(f"Enhanced prompt generated in {AIpromptGenerationTime} seconds.\n")
 
+# Save generated prompt in file
 generatedPrompt = ""
 with open(f"{currenProjectDirectory}/generated_prompt.txt", "r", encoding="utf-8") as f:
     generatedPrompt = f.read()
 
+# Try to make llm only return html
 onlyHtmlPrompAddition = """
     Create a complete HTML5 file.
     Output only the raw HTML code.
@@ -150,14 +151,13 @@ generate_documentation(f"{currenProjectDirectory}/documentation.txt", AIpromptGe
 
 totalTime = AIpromptGenerationTime
 
-# number of versions to generate
+# generate html files
 for x in range(numberOfVersions):
-    # increase temperature for each version
-    temperature = round(x * 3, 1)
+    temperature = round(x * 3, 1) # Increase temperature for each version
     start_time = time.perf_counter()
     generate_file(
         onlyHtmlPrompAddition + generatedPrompt,
-        f"{currenProjectDirectory}/temperature-is-{temperature}.html",
+        f"{currenProjectDirectory}/temperature-is-{temperature}.html", # Filenames for html files
         temperature
     )
     end_time = time.perf_counter()
@@ -166,6 +166,7 @@ for x in range(numberOfVersions):
     add_version_info_to_documentation(f"{currenProjectDirectory}/documentation.txt", temperature, timeTaken)
     print(f"Version {x+1}/{numberOfVersions} with temperature {temperature} has been generated in {timeTaken} seconds.\n")
 
+# Finish documentation 
 finish_documentation(f"{currenProjectDirectory}/documentation.txt", totalTime)
 print(f"All versions have been generated. Total time taken: {totalTime} seconds.")
 
