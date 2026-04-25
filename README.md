@@ -13,4 +13,4 @@ Each "project" is named by the LLM. In each folder you'll find the generated HTM
 By default the temperature is increased by 3 for each version. The filename contains the temperature used to generate that version.
 
 # See examples
-To see examples that were generated using a version of this programm visit [ai.compjej.com](ai.compjej.com)
+To see examples that were generated using a version of this programm visit [ai.compjej.com](https://ai.compjej.com)
